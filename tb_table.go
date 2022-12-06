@@ -34,6 +34,7 @@ type ExecuteResult int
 
 const (
 	EXECUTE_SUCCESS ExecuteResult = iota
+	EXECUTE_DUPLICATE_KEY
 	EXECUTE_TABLE_FULL
 )
 
@@ -120,13 +121,22 @@ func (table *Table) pagerOpen(filename string) {
 
 func executeInsert(statement *Statement, table *Table) ExecuteResult {
 	node := table.pager.getPage(table.rootPageNum)
-	nodeCells := *(*uint32)(node)
-	if nodeCells >= LEAF_NODE_MAX_CELLS {
+	numCells := *(*uint32)(leafNodeNumCells(node))
+	if numCells >= LEAF_NODE_MAX_CELLS {
 		return EXECUTE_TABLE_FULL
 	}
 
 	rowToInsert := &(statement.rowToInsert)
-	cursor := tableEnd(table)
+	keyToInsert := rowToInsert.id
+
+	cursor := tableFind(table, keyToInsert)
+
+	if cursor.cellNum < numCells {
+		keyAtIndex := *(*uint32)(leafNodeKey(node, cursor.cellNum))
+		if keyAtIndex == keyToInsert {
+			return EXECUTE_DUPLICATE_KEY
+		}
+	}
 
 	leafNodeInsert(cursor, rowToInsert.id, rowToInsert)
 

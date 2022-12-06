@@ -57,6 +57,9 @@ func main() {
 			case EXECUTE_SUCCESS:
 				fmt.Printf("Executed.\n")
 				break
+			case EXECUTE_DUPLICATE_KEY:
+				fmt.Printf("Error: Duplicate key.\n")
+				break
 			case EXECUTE_TABLE_FULL:
 				fmt.Printf("Error: Table full.\n")
 				break
@@ -108,6 +111,9 @@ func test(inputBuffer *InputBuffer, table *Table) {
 		switch executeStatement(&statement, table) {
 		case EXECUTE_SUCCESS:
 			fmt.Printf("Executed.\n")
+			break
+		case EXECUTE_DUPLICATE_KEY:
+			fmt.Printf("Error: Duplicate key.\n")
 			break
 		case EXECUTE_TABLE_FULL:
 			fmt.Printf("Error: Table full.\n")

@@ -44,6 +44,16 @@ const (
 	LEAF_NODE_MAX_CELLS       = +LEAF_NODE_SPACE_FOR_CELLS / LEAF_NODE_CELL_SIZE
 )
 
+func getNodeType(node unsafe.Pointer) NodeType {
+	value := *(*uint8)(unsafe.Pointer(uintptr(node) + uintptr(NODE_TYPE_OFFSET)))
+	return NodeType(value)
+}
+
+func setNodeType(node unsafe.Pointer, typ NodeType) {
+	value := uint8(typ)
+	*(*uint8)(unsafe.Pointer(uintptr(node) + uintptr(NODE_TYPE_OFFSET))) = value
+}
+
 func leafNodeNumCells(node unsafe.Pointer) unsafe.Pointer {
 	return (unsafe.Pointer(uintptr(node) + uintptr(LEAF_NODE_NUM_CELLS_OFFSET)))
 }
@@ -62,6 +72,7 @@ func leafNodeValue(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
 }
 
 func initializeLeafNode(node unsafe.Pointer) {
+	setNodeType(node, NODE_LEAF)
 	*(*uint32)(leafNodeNumCells(node)) = 0
 }
 
