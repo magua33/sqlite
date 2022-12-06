@@ -45,42 +45,33 @@ type Row struct {
 
 // Table
 type Table struct {
-	pager   *Pager
-	numRows uint32
+	pager       *Pager
+	rootPageNum uint32
 }
 
 func dbOpen(filename string) *Table {
 	table := &Table{}
 	table.pagerOpen(filename)
 
-	numRows := uint32(table.pager.fileLength) / ROW_SIZE
-	table.numRows = numRows
+	table.rootPageNum = 0
+	if table.pager.numPages == 0 {
+		rootNode := table.pager.getPage(0)
+		initializeLeafNode(rootNode)
+	}
 
 	return table
 }
 
 func (table *Table) dbClose() {
 	pager := table.pager
-	numFullPages := table.numRows / ROWS_PER_PAGE
 
-	for i := 0; i < int(numFullPages); i++ {
+	for i := 0; i < int(pager.numPages); i++ {
 		if pager.pages[i] == nil {
 			continue
 		}
 
-		pager.pagerFlush(i, PAGE_SIZE)
+		pager.pagerFlush(i)
 		pager.pages[i] = nil
-	}
-
-	// There may be a partial page to write to the end of the file
-	// This should not be needed after we switch to a B-tree
-	numAdditionalRows := table.numRows % ROWS_PER_PAGE
-	if numAdditionalRows > 0 {
-		pageNum := numFullPages
-		if pager.pages[pageNum] != nil {
-			pager.pagerFlush(int(pageNum), numAdditionalRows*ROW_SIZE)
-			pager.pages[pageNum] = nil
-		}
 	}
 
 	err := table.pager.fileDescriptor.Close()
@@ -114,24 +105,31 @@ func (table *Table) pagerOpen(filename string) {
 	pager := &Pager{}
 	pager.fileDescriptor = file
 	pager.fileLength = fileLength
+	pager.numPages = uint32(fileLength) / PAGE_SIZE
+
+	if fileLength%int64(PAGE_SIZE) != 0 {
+		fmt.Printf("Db file is not a whole number of pages. Corrupt file.\n")
+		os.Exit(EXIT_FAILURE)
+	}
 
 	table.pager = pager
-
 	for i := uint32(0); i < TABLE_MAX_PAGES; i++ {
 		table.pager.pages[i] = nil
 	}
 }
 
 func executeInsert(statement *Statement, table *Table) ExecuteResult {
-	if table.numRows >= TABLE_MAX_ROWS {
+	node := table.pager.getPage(table.rootPageNum)
+	nodeCells := *(*uint32)(node)
+	if nodeCells >= LEAF_NODE_MAX_CELLS {
 		return EXECUTE_TABLE_FULL
 	}
 
 	rowToInsert := &(statement.rowToInsert)
 	cursor := tableEnd(table)
 
-	serializeRow(rowToInsert, cursor.cursorValue())
-	table.numRows += 1
+	leafNodeInsert(cursor, rowToInsert.id, rowToInsert)
+
 	cursor = nil
 
 	return EXECUTE_SUCCESS
@@ -153,6 +151,8 @@ func executeSelect(statement *Statement, table *Table) ExecuteResult {
 }
 
 func serializeRow(source *Row, destination unsafe.Pointer) {
+	// fmt.Println("source ::::::::::::", source.id, string(source.username[:]), string(source.email[:]))
+
 	*(*uint32)(unsafe.Pointer(uintptr(destination) + uintptr(ID_OFFSET))) = source.id
 	*(*([COLUMN_USERNAME_SIZE]byte))(unsafe.Pointer(uintptr(destination) + uintptr(USERNAME_OFFSET))) = source.username
 	*(*([COLUMN_EMAIL_SIZE]byte))(unsafe.Pointer(uintptr(destination) + uintptr(EMAIL_OFFSET))) = source.email

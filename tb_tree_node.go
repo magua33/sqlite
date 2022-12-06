@@ -1,6 +1,5 @@
 package main
 
-/*
 import (
 	"fmt"
 	"os"
@@ -46,7 +45,7 @@ const (
 )
 
 func leafNodeNumCells(node unsafe.Pointer) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(node) + uintptr(LEAF_NODE_NUM_CELLS_OFFSET))
+	return (unsafe.Pointer(uintptr(node) + uintptr(LEAF_NODE_NUM_CELLS_OFFSET)))
 }
 
 func leafNodeCell(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
@@ -54,11 +53,12 @@ func leafNodeCell(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
 }
 
 func leafNodeKey(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
-	return leafNodeCell(node, cellNum)
+	return unsafe.Pointer(uintptr(leafNodeCell(node, cellNum)) + uintptr(LEAF_NODE_KEY_OFFSET))
+
 }
 
 func leafNodeValue(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(leafNodeCell(node, cellNum)) + uintptr(LEAF_NODE_KEY_SIZE))
+	return unsafe.Pointer(uintptr(leafNodeCell(node, cellNum)) + uintptr(LEAF_NODE_VALUE_OFFSET))
 }
 
 func initializeLeafNode(node unsafe.Pointer) {
@@ -68,7 +68,7 @@ func initializeLeafNode(node unsafe.Pointer) {
 func leafNodeInsert(cursor *Cursor, key uint32, value *Row) {
 	node := cursor.table.pager.getPage(cursor.pageNum)
 
-	numCells := *(*uint32)(leafNodeNumCells(cursor.table.pager.getPage(cursor.pageNum)))
+	numCells := *(*uint32)(leafNodeNumCells(node))
 	if numCells >= LEAF_NODE_MAX_CELLS {
 		// Node full
 		fmt.Printf("Need to implement splitting a leaf node.\n")
@@ -78,13 +78,13 @@ func leafNodeInsert(cursor *Cursor, key uint32, value *Row) {
 	if cursor.cellNum < numCells {
 		// Make room for new cell
 		for i := numCells; i > cursor.cellNum; i-- {
-			*(*[LEAF_NODE_CELL_SIZE]byte)(leafNodeCell(node, i)) = *(*[LEAF_NODE_CELL_SIZE]byte)(leafNodeCell(node, i-1))
+			copy((*(*[LEAF_NODE_CELL_SIZE]byte)(leafNodeCell(node, i)))[:], (*(*[LEAF_NODE_CELL_SIZE]byte)(leafNodeCell(node, i-1)))[:])
 		}
 	}
 
 	*(*uint32)(leafNodeNumCells(node)) += 1
 	*(*uint32)(leafNodeKey(node, cursor.cellNum)) = key
-	serializeRow(value, leafNodeValue(node, cursor.cellNum))
+	serializeRow(value, unsafe.Pointer(leafNodeValue(node, cursor.cellNum)))
 }
 
 func printLeafNode(node unsafe.Pointer) {
@@ -95,4 +95,3 @@ func printLeafNode(node unsafe.Pointer) {
 		fmt.Printf("  - %d : %d\n", i, key)
 	}
 }
-*/

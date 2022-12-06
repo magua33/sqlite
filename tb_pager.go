@@ -12,6 +12,7 @@ import (
 type Pager struct {
 	fileDescriptor *os.File
 	fileLength     int64
+	numPages       uint32
 	pages          [TABLE_MAX_PAGES]*[PAGE_SIZE]byte
 }
 
@@ -44,12 +45,15 @@ func (pager *Pager) getPage(pageNum uint32) unsafe.Pointer {
 		}
 
 		pager.pages[pageNum] = page
+		if pageNum >= pager.numPages {
+			pager.numPages = pageNum + 1
+		}
 	}
 
 	return unsafe.Pointer(pager.pages[pageNum])
 }
 
-func (pager *Pager) pagerFlush(pageNum int, size uint32) {
+func (pager *Pager) pagerFlush(pageNum int) {
 	if pager.pages[pageNum] == nil {
 		fmt.Printf("Tried to flush null page\n")
 		os.Exit(EXIT_FAILURE)
@@ -61,7 +65,7 @@ func (pager *Pager) pagerFlush(pageNum int, size uint32) {
 		os.Exit(EXIT_FAILURE)
 	}
 
-	bytesWrite, err := pager.fileDescriptor.Write(pager.pages[pageNum][:size])
+	bytesWrite, err := pager.fileDescriptor.Write(pager.pages[pageNum][:PAGE_SIZE])
 	if err != nil || bytesWrite == -1 {
 		fmt.Printf("Error writing: %s\n", err.Error())
 		os.Exit(EXIT_FAILURE)

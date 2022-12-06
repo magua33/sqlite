@@ -75,7 +75,6 @@ func printPrompt() {
 	fmt.Printf("db > ")
 }
 
-/*
 func printConstants() {
 	fmt.Printf("ROW_SIZE: %d\n", ROW_SIZE)
 	fmt.Printf("COMMON_NODE_HEADER_SIZE: %d\n", COMMON_NODE_HEADER_SIZE)
@@ -84,7 +83,6 @@ func printConstants() {
 	fmt.Printf("LEAF_NODE_SPACE_FOR_CELLS: %d\n", LEAF_NODE_SPACE_FOR_CELLS)
 	fmt.Printf("LEAF_NODE_MAX_CELLS: %d\n", LEAF_NODE_MAX_CELLS)
 }
-*/
 
 // @Test
 func test(inputBuffer *InputBuffer, table *Table) {
