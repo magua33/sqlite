@@ -161,8 +161,6 @@ func executeSelect(statement *Statement, table *Table) ExecuteResult {
 }
 
 func serializeRow(source *Row, destination unsafe.Pointer) {
-	// fmt.Println("source ::::::::::::", source.id, string(source.username[:]), string(source.email[:]))
-
 	*(*uint32)(unsafe.Pointer(uintptr(destination) + uintptr(ID_OFFSET))) = source.id
 	*(*([COLUMN_USERNAME_SIZE]byte))(unsafe.Pointer(uintptr(destination) + uintptr(USERNAME_OFFSET))) = source.username
 	*(*([COLUMN_EMAIL_SIZE]byte))(unsafe.Pointer(uintptr(destination) + uintptr(EMAIL_OFFSET))) = source.email

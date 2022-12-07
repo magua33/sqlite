@@ -61,11 +61,11 @@ func leafNodeFind(table *Table, pageNum uint32, key uint32) *Cursor {
 	cursor.table = table
 	cursor.pageNum = pageNum
 
-	min := uint32(0)
-	max := numCells
-	for max != min {
-		index := min + (max-min)/2
-		indexKey := *(*uint32)(leafNodeKey(node, key))
+	minIndex := uint32(0)
+	onePastMaxIndex := numCells
+	for onePastMaxIndex != minIndex {
+		index := (minIndex + onePastMaxIndex) / 2
+		indexKey := *(*uint32)(leafNodeKey(node, index))
 
 		if key == indexKey {
 			cursor.cellNum = index
@@ -73,13 +73,13 @@ func leafNodeFind(table *Table, pageNum uint32, key uint32) *Cursor {
 		}
 
 		if key < indexKey {
-			max = index
+			onePastMaxIndex = index
 		} else {
-			min = index + 1
+			minIndex = index + 1
 		}
 	}
 
-	cursor.cellNum = min
+	cursor.cellNum = minIndex
 	return cursor
 }
 

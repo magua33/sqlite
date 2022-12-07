@@ -95,7 +95,7 @@ func leafNodeInsert(cursor *Cursor, key uint32, value *Row) {
 
 	*(*uint32)(leafNodeNumCells(node)) += 1
 	*(*uint32)(leafNodeKey(node, cursor.cellNum)) = key
-	serializeRow(value, unsafe.Pointer(leafNodeValue(node, cursor.cellNum)))
+	serializeRow(value, leafNodeValue(node, cursor.cellNum))
 }
 
 func printLeafNode(node unsafe.Pointer) {
