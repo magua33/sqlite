@@ -58,6 +58,7 @@ func dbOpen(filename string) *Table {
 	if table.pager.numPages == 0 {
 		rootNode := table.pager.getPage(0)
 		initializeLeafNode(rootNode)
+		setNodeRoot(rootNode, true)
 	}
 
 	return table
@@ -122,9 +123,6 @@ func (table *Table) pagerOpen(filename string) {
 func executeInsert(statement *Statement, table *Table) ExecuteResult {
 	node := table.pager.getPage(table.rootPageNum)
 	numCells := *(*uint32)(leafNodeNumCells(node))
-	if numCells >= LEAF_NODE_MAX_CELLS {
-		return EXECUTE_TABLE_FULL
-	}
 
 	rowToInsert := &(statement.rowToInsert)
 	keyToInsert := rowToInsert.id

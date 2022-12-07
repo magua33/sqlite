@@ -37,7 +37,7 @@ func doMetaCommand(inputBuffer *InputBuffer, table *Table) MetaCommandResult {
 		return META_COMMAND_SUCCESS
 	} else if string(inputBuffer.buffer) == ".btree" {
 		fmt.Printf("Tree:\n")
-		printLeafNode(table.pager.getPage(0))
+		printTree(table.pager, 0, 0)
 		return META_COMMAND_SUCCESS
 	}
 	return META_COMMAND_UNRECOGNIZED_COMMAND

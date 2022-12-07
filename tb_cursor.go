@@ -14,31 +14,14 @@ type Cursor struct {
 }
 
 func tableStart(table *Table) *Cursor {
-	cursor := &Cursor{}
-	cursor.table = table
-	cursor.pageNum = table.rootPageNum
-	cursor.cellNum = 0
+	cursor := tableFind(table, 0)
 
-	rootNode := table.pager.getPage(table.rootPageNum)
-	numCells := *(*uint32)(leafNodeNumCells(rootNode))
-	cursor.endOfTable = numCells == 0
+	node := table.pager.getPage(cursor.pageNum)
+	numCells := *(*uint32)(leafNodeNumCells(node))
+	cursor.endOfTable = (numCells == 0)
 
 	return cursor
 }
-
-// func tableEnd(table *Table) *Cursor {
-// 	cursor := &Cursor{}
-// 	cursor.table = table
-// 	cursor.pageNum = table.rootPageNum
-
-// 	rootNode := table.pager.getPage(table.rootPageNum)
-// 	numCells := *(*uint32)(leafNodeNumCells(rootNode))
-// 	cursor.cellNum = numCells
-
-// 	cursor.endOfTable = true
-
-// 	return cursor
-// }
 
 func tableFind(table *Table, key uint32) *Cursor {
 	rootPageNum := table.rootPageNum
@@ -47,10 +30,46 @@ func tableFind(table *Table, key uint32) *Cursor {
 	if getNodeType(rootNode) == NODE_LEAF {
 		return leafNodeFind(table, rootPageNum, key)
 	} else {
-		fmt.Printf("Need to implement searching an internal node\n")
-		os.Exit(EXIT_FAILURE)
+		return internalNodeFind(table, rootPageNum, key)
 	}
-	return nil
+}
+
+func internalNodeFindChild(node unsafe.Pointer, key uint32) uint32 {
+	numKeys := *(*uint32)(internalNodeNumKeys(node))
+
+	min := uint32(0)
+	max := numKeys
+	for max != min {
+		index := (min + max) / 2
+		indexKey := *(*uint32)(internalNodeKey(node, index))
+		if indexKey >= key {
+			max = index
+		} else {
+			min = index + 1
+		}
+	}
+
+	return min
+}
+
+func internalNodeFind(table *Table, pageNum, key uint32) *Cursor {
+	node := table.pager.getPage(pageNum)
+
+	childIndex := internalNodeFindChild(node, key)
+	childNum := *(*uint32)(internalNodeChild(node, childIndex))
+
+	child := table.pager.getPage(childNum)
+
+	switch getNodeType(child) {
+	case NODE_INTERNAL:
+		return internalNodeFind(table, childNum, key)
+	case NODE_LEAF:
+		return leafNodeFind(table, childNum, key)
+	default:
+		fmt.Println("Error node type!")
+		os.Exit(EXIT_FAILURE)
+		return nil
+	}
 }
 
 func leafNodeFind(table *Table, pageNum uint32, key uint32) *Cursor {
@@ -98,6 +117,12 @@ func (cursor *Cursor) cursorAdvance() {
 	nodeCell := *(*uint32)(leafNodeNumCells(node))
 
 	if cursor.cellNum >= nodeCell {
-		cursor.endOfTable = true
+		nextPageNum := *(*uint32)(leafNodeNextLeaf(node))
+		if nextPageNum == 0 {
+			cursor.endOfTable = true
+		} else {
+			cursor.pageNum = nextPageNum
+			cursor.cellNum = 0
+		}
 	}
 }
