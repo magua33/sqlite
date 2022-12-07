@@ -59,7 +59,7 @@ func leafNodeNumCells(node unsafe.Pointer) unsafe.Pointer {
 }
 
 func leafNodeCell(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(node) + uintptr(cellNum*LEAF_NODE_CELL_SIZE))
+	return unsafe.Pointer(uintptr(node) + uintptr(LEAF_NODE_HEADER_SIZE) + uintptr(cellNum*LEAF_NODE_CELL_SIZE))
 }
 
 func leafNodeKey(node unsafe.Pointer, cellNum uint32) unsafe.Pointer {
