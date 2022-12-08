@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	"fmt"
 	"testing"
 	"unsafe"
@@ -27,18 +28,17 @@ func BenchmarkWriteBySwap(b *testing.B) {
 	page := [10240]byte{}
 
 	const (
-		IDSize       int = 4
+		IDSize       int = 8
 		UsernameSize int = 32
-		EmailSize    int = 255
+		EmailSize    int = 251
 		RowSize      int = 291
 		PageSize     int = 10240
 
 		IDOffset       int = 0
-		UsernameOffset int = 4
-		EmailOffset    int = 36
+		UsernameOffset int = 8
+		EmailOffset    int = 40
 	)
 
-	// id := uint32(7)
 	username := "seven"
 	email := "seven7@gmail.com"
 
@@ -53,7 +53,7 @@ func BenchmarkWriteBySwap(b *testing.B) {
 			copy(ub[:], []byte(username))
 			copy(eb[:], []byte(email))
 
-			// *(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(IDOffset))) = id
+			*(*uint64)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(IDOffset))) = uint64(i)
 			*(*[UsernameSize]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(UsernameOffset))) = ub
 			*(*[EmailSize]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(EmailOffset))) = eb
 		}
@@ -62,7 +62,7 @@ func BenchmarkWriteBySwap(b *testing.B) {
 		for k := 0; k < x; k++ {
 			idx := k
 			rowOffset := idx * RowSize
-			// *(*uint32)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(IDOffset))) = 0
+			*(*uint64)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(IDOffset))) = 0
 			*(*[UsernameSize]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(UsernameOffset))) = [UsernameSize]byte{}
 			*(*[EmailSize]byte)(unsafe.Pointer(uintptr(unsafe.Pointer(&page)) + uintptr(rowOffset) + uintptr(EmailOffset))) = [EmailSize]byte{}
 		}
@@ -74,18 +74,17 @@ func BenchmarkWriteByCopy(b *testing.B) {
 	page := [10240]byte{}
 
 	const (
-		IDSize       int = 4
+		IDSize       int = 8
 		UsernameSize int = 32
-		EmailSize    int = 255
+		EmailSize    int = 251
 		RowSize      int = 291
 		PageSize     int = 10240
 
 		IDOffset       int = 0
-		UsernameOffset int = 4
-		EmailOffset    int = 36
+		UsernameOffset int = 8
+		EmailOffset    int = 40
 	)
 
-	// id := uint32(7)
 	username := "seven"
 	email := "seven7@gmail.com"
 
@@ -95,15 +94,9 @@ func BenchmarkWriteByCopy(b *testing.B) {
 		for j := 0; j < 34; j++ {
 			rowOffset := j * RowSize
 
-			// idb := [IDSize]byte{}
-			// bit := 8
-			// for i := 0; i < IDSize; i++ {
-			// 	idb[i] = uint8(id >> (i * bit))
-			// 	idb[i] = uint8(id >> (i * bit))
-			// 	idb[i] = uint8(id >> (i * bit))
-			// 	idb[i] = uint8(id >> (i * bit))
-			// }
-			// copy(page[rowOffset+IDOffset:], idb[:])
+			idb := [IDSize]byte{}
+			binary.BigEndian.PutUint64(idb[:], uint64(i))
+			copy(page[rowOffset+IDOffset:], idb[:])
 			copy(page[rowOffset+UsernameOffset:], []byte(username))
 			copy(page[rowOffset+EmailOffset:], []byte(email))
 		}
@@ -113,8 +106,8 @@ func BenchmarkWriteByCopy(b *testing.B) {
 			idx := k
 			rowOffset := idx * RowSize
 
-			// id := page[rowOffset+IDOffset : rowOffset+IDOffset+IDSize]
-			// _ = uint32(id[3]) | uint32(id[2])<<8 | uint32(id[1])<<16 | uint32(id[0])<<24
+			id := page[rowOffset+IDOffset : rowOffset+IDOffset+IDSize]
+			_ = binary.LittleEndian.Uint64(id)
 			_ = page[rowOffset+UsernameOffset : rowOffset+UsernameOffset+UsernameSize]
 			_ = page[rowOffset+EmailOffset : rowOffset+EmailOffset+EmailSize]
 		}
